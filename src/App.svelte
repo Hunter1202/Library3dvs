@@ -5,57 +5,84 @@
     let imgData = {};
     let loading = true;
     let isDarkMode = true;
+    let mainData = {};
+    let oldData = {};
+    let loadingOld = false;
     let expandedCategories = {};
     let scrollContainers = {};
     let selectedImg = null; // Lưu ảnh đang được phóng to
-
+    let currentView = 'home';
 
     const API_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
-    const categories = ["OUTDOOR", "LIVING", "OFFICE", "BED", "DINING"];
     const CACHE_KEY = "img_cache";
     const CACHE_TIME = 60 * 60 * 1000; // Cache trong 1 tiếng
 
+    const categories = ["OUTDOOR", "LIVING", "OFFICE", "BED", "DINING"];
+    const oldCategories = ["OLD OUTDOOR", "OLD LIVING", "STUDY", "OLD BED", "OLD DINING"];
+
+    async function fetchSource(type) {
+        try {
+            const res = await fetch(`${API_URL}?type=${type}`);
+            return await res.json();
+        } catch (e) {
+            console.error(`Fetch ${type} error:`, e);
+            return {};
+        }
+    }
+
     onMount(async () => {
-        // 1. Kiểm tra Cache trước
+        // 1. Kiểm tra Cache
         const cached = localStorage.getItem(CACHE_KEY);
         if (cached) {
             const { data, timestamp } = JSON.parse(cached);
-            // Nếu cache chưa quá 1 tiếng, dùng luôn
             if (Date.now() - timestamp < CACHE_TIME) {
-                imgData = data;
+                mainData = data;
+                imgData = mainData;
                 loading = false;
             }
         }
 
-        // 2. Luôn fetch ngầm để cập nhật dữ liệu mới nhất (Stale-while-revalidate)
-        try {
-            const res = await fetch(API_URL);
-            const freshData = await res.json();
-
-            imgData = freshData;
+        // 2. Fetch mới dữ liệu Main (Stale-while-revalidate)
+        const freshData = await fetchSource('main');
+        if (Object.keys(freshData).length > 0) {
+            mainData = freshData;
+            if (currentView === 'home') imgData = mainData;
             loading = false;
 
-            // Lưu lại vào cache cho lần sau
             localStorage.setItem(CACHE_KEY, JSON.stringify({
                 data: freshData,
                 timestamp: Date.now()
             }));
-        } catch (e) {
-            console.error("Fetch error:", e);
         }
     });
+
+    // Hàm chuyển view - Xử lý Lazy Loading cho Old Data
+    async function switchView(view) {
+        currentView = view;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        if (view === 'home') {
+            imgData = mainData;
+        } else {
+            // Nếu chưa có dữ liệu Old thì mới fetch
+            if (Object.keys(oldData).length === 0) {
+                loadingOld = true;
+                oldData = await fetchSource('old');
+                loadingOld = false;
+            }
+            imgData = oldData;
+        }
+    }
 
     const scroll = (node, direction) => {
         const distance = 400;
         node.scrollBy({ left: direction * distance, behavior: 'smooth' });
     };
-
     const toggleTheme = () => isDarkMode = !isDarkMode;
     const scrollToCategory = (id) => {
         const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
-
     function toggleExpand(category) {
         expandedCategories[category] = !expandedCategories[category];
         if (expandedCategories[category]) {
@@ -63,19 +90,11 @@
             scrollContainers[category] = 20;
         }
     }
-
     function loadMore(category) {
         scrollContainers[category] += 10;
     }
-
-    function openFullImage(img) {
-        selectedImg = img;
-    }
-
-    function closeFullImage() {
-        selectedImg = null;
-    }
-
+    function openFullImage(img) { selectedImg = img; }
+    function closeFullImage() { selectedImg = null; }
     // Hàm bổ trợ để xử lý việc bấm vào Header
     function handleHeaderClick(category) {
         if (!expandedCategories[category]) {
@@ -93,11 +112,22 @@
             <div class="logo">Library<span>3dvs</span></div>
 
             <nav class="desktop-nav">
-                {#each categories as cat}
-                    <button on:click={() => scrollToCategory(cat)}>{cat}</button>
-                {/each}
+                {#if currentView === 'home'}
+                    {#each categories as cat}
+                        <button on:click={() => scrollToCategory(cat)}>{cat}</button>
+                    {/each}
+                    <!-- Nút chuyển sang trang Old -->
+                    <button class="btn-old-trigger" on:click={() => switchView('old')}>
+                        OLD LIBRARY
+                    </button>
+                {:else}
+                    <!-- Navbar cho trang Old -->
+                    <button class="btn-back" on:click={() => switchView('home')}>← NEW LIBRARY</button>
+                    {#each oldCategories as cat}
+                        <button on:click={() => scrollToCategory(cat)}>{cat}</button>
+                    {/each}
+                {/if}
             </nav>
-
             <button class="theme-toggle" on:click={toggleTheme}>
                 {#if isDarkMode}
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -112,7 +142,12 @@
         {#if loading && !Object.keys(imgData).length}
             <div class="loader-screen">
                 <div class="pulse"></div>
-                <p>Architectural Library Loading...</p>
+                <br><p>Architectural Library Loading...</p><br>
+            </div>
+        {:else if loadingOld}
+            <div class="loader-screen">
+                <div class="pulse"></div>
+                <p>Loading Old Library...</p>
             </div>
         {:else}
             {#each Object.entries(imgData) as [category, images]}
@@ -181,7 +216,7 @@
 
     <footer>
         <div class="footer-grid">
-            <div class="footer-info">© 2026 Library3dvs. All rights reserved.</div>
+            <div class="footer-info">© 2026 <span class="footer-logo">Library3dvs</span>. All rights reserved.</div>
         </div>
     </footer>
     {#if selectedImg}
@@ -273,12 +308,12 @@
     .img-card-large {
         background: #222; /* Màu nền tối để chờ ảnh */
         position: relative;
-        aspect-ratio: 3/4; /* Giữ khung hình cố định trước khi ảnh hiện ra */
+        aspect-ratio: 1; /* Giữ khung hình cố định trước khi ảnh hiện ra */
     }
 
     .expanded-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 20px;
         animation: fadeIn 0.5s ease;
     }
@@ -368,9 +403,18 @@
     /* Responsive */
     @media (max-width: 768px) {
         .category-section { padding-top: 10px; }
-        .desktop-nav { display: none; }
-        .img-card { flex: 0 0 280px; }
-        .nav-btn { display: none !important; } /* Mobile dùng swipe tự nhiên */
+        .desktop-nav button:not(.btn-old-trigger):not(.btn-back) {
+            display: none;
+        }
+        .btn-old-trigger {
+            font-size: 20px;
+            margin-right: 20px;
+        }
+        .btn-back {
+            font-size: 20px;
+            margin-right: 50px;
+        }
+        .img-card { flex: 0 0 200px; }
         .lightbox {
             translate: -19px;
         }
@@ -444,5 +488,10 @@
     /* Thêm pointer cho ảnh */
     .img-inner, .img-card-large {
         cursor: pointer;
+    }
+
+    .footer-logo {
+        color: var(--accent);
+        font-weight: bold;
     }
 </style>

@@ -133,7 +133,6 @@
         }
     }
 </script>
-
 <div class="app-container" class:light-mode={!isDarkMode}>
     <header class="glass-header">
         <div class="header-content">
@@ -196,14 +195,13 @@
                                 {#each images.slice(0, 15) as img, i}
                                     <div class="img-card">
                                         <div class="img-inner" on:click={() => openFullImage(img, category, i)}>
-                                            <img src={img.url + "=w600"} alt={img.name} loading="lazy" decoding="async" />
+                                            <img src={img.url + "=w200"} alt={img.name} loading="lazy" decoding="async" />
                                             <div class="overlay">
                                                 <span>{img.name.split('.')[0]}</span>
                                             </div>
                                         </div>
                                     </div>
                                 {/each}
-
                                 {#if images.length > 10}
                                     <button class="show-more-inline" on:click={() => toggleExpand(category)}>
                                         <span>+{images.length - 10}<br>MORE...</span>
@@ -238,7 +236,7 @@
     <footer>
         <div class="footer-grid">
             <div class="footer-info">© 2026 <span class="footer-logo">Library3dvs</span>. All rights reserved.</div>
-        </div>
+        </div><br>
     </footer>
 
     {#if selectedImg}
@@ -257,7 +255,6 @@
     {/if}
 </div>
 <style>
-    /* CSS Variables cho Theme */
     :root {
         --bg: #0a0a0a;
         --card-bg: #151515;
@@ -266,7 +263,6 @@
         --glass: rgba(20, 20, 20, 0.8);
         --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
-
     .light-mode {
         --bg: #f5f7f8;
         --card-bg: #ffffff;
@@ -274,7 +270,6 @@
         --accent: #2d5a27;
         --glass: rgba(255, 255, 255, 0.8);
     }
-
     /* Base Styles */
     .app-container {
         background-color: var(--bg);
@@ -283,7 +278,6 @@
         transition: var(--transition);
         font-family: 'Inter', -apple-system, sans-serif;
     }
-
     /* Header Glassmorphism */
     .glass-header {
         position: sticky;
@@ -294,7 +288,6 @@
         border-bottom: 1px solid rgba(128, 128, 128, 0.1);
         padding: 15px 5%;
     }
-
     .header-content {
         display: flex;
         justify-content: space-between;
@@ -302,10 +295,8 @@
         max-width: 1400px;
         margin: 0 auto;
     }
-
     .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -1px; }
     .logo span { color: var(--accent); }
-
     .desktop-nav { display: flex; gap: 20px; }
     .desktop-nav button {
         background: none; border: none; color: var(--text);
@@ -313,13 +304,11 @@
         opacity: 0.6; transition: 0.3s;
     }
     .desktop-nav button:hover { opacity: 1; color: var(--accent); }
-
     /* Section Title */
     .category-section { padding: 60px 5%; overflow: hidden; padding-top: 100px; }
     .section-title { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
     .section-title h2 { color: var(--accent); letter-spacing: 4px; font-weight: bold; margin: 0; }
     .line { flex: 1; height: 1px; background: rgba(128, 128, 128, 0.2); }
-
     /* Slider Logic & Swipe */
     .slider-wrapper { position: relative; }
     .slider {
@@ -333,21 +322,18 @@
         scrollbar-width: none;  /* Firefox */
     }
     .slider::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-
     .expanded-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 20px;
         animation: fadeIn 0.5s ease;
     }
-
     .img-card-large img {
         width: 100%;
         height: auto;
         border-radius: 8px;
         transition: opacity 0.3s;
     }
-
     .btn-close {
         background: none;
         border: 1px solid #444;
@@ -356,12 +342,10 @@
         padding: 5px 15px;
         border-radius: 20px;
     }
-
     .load-more-trigger {
         text-align: center;
         padding: 40px;
     }
-
     .btn-load-more {
         background: #deff9a;
         color: #000;
@@ -371,12 +355,10 @@
         cursor: pointer;
         border-radius: 4px;
     }
-
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
     }
-
     .nav-btn {
         position: absolute; top: 50%; transform: translateY(-50%);
         width: 45px; height: 45px; border-radius: 50%;
@@ -389,7 +371,6 @@
     .slider-wrapper:hover .nav-btn { display: flex; }
     .prev { left: -22px; }
     .next { right: -22px; }
-
     /* Image Cards & Hover Effect */
     .img-card {
         flex: 0 0 350px;
@@ -397,7 +378,6 @@
         border-radius: 12px;
         overflow: hidden;
     }
-
     .img-inner {
         position: relative;
         width: 100%;
@@ -405,14 +385,11 @@
         overflow: hidden;
         background: var(--card-bg);
     }
-
     .img-inner img {
         width: 100%; height: 100%; object-fit: cover;
         transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
-
     .img-card:hover img { transform: scale(1.1); }
-
     .overlay {
         position: absolute; bottom: 0; left: 0; right: 0;
         padding: 20px;
@@ -422,7 +399,6 @@
     }
     .img-card:hover .overlay { opacity: 1; }
     .overlay span { color: white; font-size: 0.8rem; font-weight: 300; }
-
     /* Theme Toggle Button */
     .theme-toggle {
         background: var(--card-bg);
@@ -444,7 +420,6 @@
         letter-spacing: 6px; /* Hiệu ứng giãn chữ nhẹ khi hover */
         opacity: 0.8;
     }
-
     /* Lightbox Styles */
     .lightbox {
         position: fixed;
@@ -455,21 +430,18 @@
         align-items: center;
         justify-content: center;
     }
-
     .lightbox-content {
         display: flex;
         flex-direction: column;
         align-items: center;
         max-width: 200%;
     }
-
     .lightbox img {
         max-height: 200vh;
         max-width: 100%;
         object-fit: contain;
         box-shadow: 0 0 50px rgba(0,0,0,0.5);
     }
-
     .lightbox-nav {
         background: rgba(255, 255, 255, 0.1);
         border: none;
@@ -484,27 +456,22 @@
         justify-content: space-between;
         transition: 0.3s;
     }
-
     .lightbox-nav:hover {
         background: var(--accent);
         color: black;
     }
-
     .lightbox-info {
         margin-top: 15px;
         text-align: center;
         color: #fff;
     }
-
     .lightbox-info span {
         font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 2px;
         color: var(--accent);
     }
-
     .lightbox-info p { margin: 5px 0 0; opacity: 0.7; font-size: 0.9rem; }
-
     .close-lightbox {
         position: absolute;
         top: 20px;
@@ -522,7 +489,6 @@
         color: var(--accent);
         font-weight: bold;
     }
-
     /* Responsive */
     @media (max-width: 768px) {
         .category-section { padding-top: 10px; }

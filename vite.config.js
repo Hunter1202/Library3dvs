@@ -5,6 +5,6 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 export default defineConfig({
   plugins: [svelte()],
     server: {
-        allowedHosts: ['user-7625.nport.link'],
+        allowedHosts: ['library.nport.link'],
     },
 })

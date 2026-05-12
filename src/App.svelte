@@ -11,6 +11,8 @@
     let expandedCategories = {};
     let scrollContainers = {};
     let selectedImg = null; // Lưu ảnh đang được phóng to
+    let currentIdx = 0;
+    let currentCate = null;
     let currentView = 'home';
 
     const API_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
@@ -18,7 +20,7 @@
     const CACHE_TIME = 60 * 60 * 1000; // Cache trong 1 tiếng
 
     const categories = ["OUTDOOR", "LIVING", "OFFICE", "BED", "DINING"];
-    const oldCategories = ["OLD OUTDOOR", "OLD LIVING", "STUDY", "OLD BED", "OLD DINING"];
+    const oldCategories = ["OUTDOOR", "LIVING", "STUDY", "BED", "DINING"];
 
     async function fetchSource(type) {
         try {
@@ -93,7 +95,33 @@
     function loadMore(category) {
         scrollContainers[category] += 10;
     }
-    function openFullImage(img) { selectedImg = img; }
+    function openFullImage(img, category, index) {
+        selectedImg = img;
+        currentIdx = index;
+        currentCate = category;
+    }
+    function nextImage(e) {
+        e.stopPropagation(); // Ngăn đóng lightbox khi bấm nút
+        const imgs = imgData[currentCate];
+        if (currentIdx < imgs.length - 1) {
+            currentIdx++;
+            selectedImg = imgs[currentIdx];
+        } else {
+            currentIdx = 0;
+            selectedImg = imgs[currentIdx];
+        }
+    }
+    function prevImage(e) {
+        e.stopPropagation();
+        const imgs = imgData[currentCate];
+        if (currentIdx > 0) {
+            currentIdx--;
+            selectedImg = imgs[currentIdx]
+        } else {
+            currentIdx = imgs.length - 1;
+            selectedImg = imgs[currentIdx];
+        }
+    }
     function closeFullImage() { selectedImg = null; }
     // Hàm bổ trợ để xử lý việc bấm vào Header
     function handleHeaderClick(category) {
@@ -128,7 +156,7 @@
                     {/each}
                 {/if}
             </nav>
-            <button class="theme-toggle" on:click={toggleTheme}>
+            <button class="theme-toggle" aria-label="Toggle-theme" type="button" on:click={toggleTheme}>
                 {#if isDarkMode}
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 {:else}
@@ -142,12 +170,7 @@
         {#if loading && !Object.keys(imgData).length}
             <div class="loader-screen">
                 <div class="pulse"></div>
-                <br><p>Architectural Library Loading...</p><br>
-            </div>
-        {:else if loadingOld}
-            <div class="loader-screen">
-                <div class="pulse"></div>
-                <p>Loading Old Library...</p>
+                <br><p>Loading resources... please wait!</p><br>
             </div>
         {:else}
             {#each Object.entries(imgData) as [category, images]}
@@ -163,7 +186,6 @@
                         <div class="line"></div>
                     </div>
 
-
                     {#if !expandedCategories[category]}
                         <div class="slider-wrapper">
                             <!-- Nút điều hướng Slider -->
@@ -171,10 +193,10 @@
                             <button class="nav-btn next" on:click={() => scroll(scrollContainers[category], 1)}>›</button>
 
                             <div class="slider" bind:this={scrollContainers[category]}>
-                                {#each images.slice(0, 15) as img}
+                                {#each images.slice(0, 15) as img, i}
                                     <div class="img-card">
-                                        <div class="img-inner" on:click={() => openFullImage(img)}>
-                                            <img src={img.url} alt={img.name} loading="lazy" decoding="async" />
+                                        <div class="img-inner" on:click={() => openFullImage(img, category, i)}>
+                                            <img src={img.url + "=w600"} alt={img.name} loading="lazy" decoding="async" />
                                             <div class="overlay">
                                                 <span>{img.name.split('.')[0]}</span>
                                             </div>
@@ -193,10 +215,9 @@
                         <!-- Chế độ Detail (Expand) -->
                     {:else}
                         <div class="expanded-grid">
-                            {#each images.slice(0, scrollContainers[category]) as img}
-                                <div class="img-card-large" on:click={() => openFullImage(img)}>
-                                    <img src={img.url} alt={img.name} loading="lazy" />
-                                    <p class="img-caption">{img.name}</p>
+                            {#each images.slice(0, scrollContainers[category]) as img, i}
+                                <div class="img-card-large" on:click={() => openFullImage(img, category, i)}>
+                                    <img src={img.url + "=w800"} alt={img.name} loading="lazy"/>
                                 </div>
                             {/each}
                         </div>
@@ -219,11 +240,19 @@
             <div class="footer-info">© 2026 <span class="footer-logo">Library3dvs</span>. All rights reserved.</div>
         </div>
     </footer>
+
     {#if selectedImg}
         <div class="lightbox" on:click={closeFullImage} transition:fade>
             <button class="close-lightbox">✕</button>
-            <img src={selectedImg.url} alt={selectedImg.name} />
-            <div class="lightbox-caption">{selectedImg.name}</div>
+            <button class="lightbox-nav prev" on:click={prevImage}>‹</button>
+            <div class="lightbox-content">
+                <img src={selectedImg.url + "=w1600"} alt={selectedImg.name} />
+                <div class="lightbox-info">
+                    <span>{currentCate} | {currentIdx + 1} / {imgData[currentCate].length}</span>
+                    <p>{selectedImg.name}</p>
+                </div>
+            </div>
+            <button class="lightbox-nav next" on:click={nextImage}>›</button>
         </div>
     {/if}
 </div>
@@ -304,12 +333,6 @@
         scrollbar-width: none;  /* Firefox */
     }
     .slider::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-
-    .img-card-large {
-        background: #222; /* Màu nền tối để chờ ảnh */
-        position: relative;
-        aspect-ratio: 1; /* Giữ khung hình cố định trước khi ảnh hiện ra */
-    }
 
     .expanded-grid {
         display: grid;
@@ -400,26 +423,6 @@
     .img-card:hover .overlay { opacity: 1; }
     .overlay span { color: white; font-size: 0.8rem; font-weight: 300; }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-        .category-section { padding-top: 10px; }
-        .desktop-nav button:not(.btn-old-trigger):not(.btn-back) {
-            display: none;
-        }
-        .btn-old-trigger {
-            font-size: 20px;
-            margin-right: 20px;
-        }
-        .btn-back {
-            font-size: 20px;
-            margin-right: 50px;
-        }
-        .img-card { flex: 0 0 200px; }
-        .lightbox {
-            translate: -19px;
-        }
-    }
-
     /* Theme Toggle Button */
     .theme-toggle {
         background: var(--card-bg);
@@ -445,53 +448,96 @@
     /* Lightbox Styles */
     .lightbox {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.95);
+        inset: 0;
+        background: rgba(0, 0, 0, 0.91);
         z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .lightbox-content {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: 20px;
-        cursor: zoom-out;
+        max-width: 200%;
     }
 
     .lightbox img {
-        max-width: 95%;
-        max-height: 85vh;
+        max-height: 200vh;
+        max-width: 100%;
         object-fit: contain;
-        box-shadow: 0 0 30px rgba(0,0,0,0.5);
-        border-radius: 4px;
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
     }
 
-    .lightbox-caption {
-        margin-top: 20px;
-        color: var(--accent);
-        font-size: 0.9rem;
-        letter-spacing: 2px;
+    .lightbox-nav {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: white;
+        width: 30px;
+        height: 60px;
+        border-radius: 50%;
+        font-size: 30px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: 0.3s;
     }
+
+    .lightbox-nav:hover {
+        background: var(--accent);
+        color: black;
+    }
+
+    .lightbox-info {
+        margin-top: 15px;
+        text-align: center;
+        color: #fff;
+    }
+
+    .lightbox-info span {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent);
+    }
+
+    .lightbox-info p { margin: 5px 0 0; opacity: 0.7; font-size: 0.9rem; }
 
     .close-lightbox {
         position: absolute;
         top: 20px;
-        right: 50px;
+        right: 20px;
         background: none;
         border: none;
         color: white;
         font-size: 2rem;
         cursor: pointer;
     }
-
-    /* Thêm pointer cho ảnh */
     .img-inner, .img-card-large {
         cursor: pointer;
     }
-
     .footer-logo {
         color: var(--accent);
         font-weight: bold;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .category-section { padding-top: 10px; }
+        .desktop-nav button:not(.btn-old-trigger):not(.btn-back) {
+            display: none;
+        }
+        .btn-old-trigger {
+            font-size: 30px;
+            margin-right: -55px;
+            margin-top: 2px;
+        }
+        .btn-back {
+            font-size: 30px;
+            margin-right: -45px;
+        }
+        .img-card { flex: 0 0 200px; }
     }
 </style>

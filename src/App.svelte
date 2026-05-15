@@ -88,13 +88,30 @@
     function toggleExpand(category) {
         expandedCategories[category] = !expandedCategories[category];
         if (expandedCategories[category]) {
-            // Khi mở rộng, khởi tạo ban đầu hiện 10 ảnh + 10 ảnh tiếp theo
-            scrollContainers[category] = 20;
+            // Khi mở rộng
+            scrollContainers[category] = 50;
         }
     }
     function loadMore(category) {
-        scrollContainers[category] += 10;
+        scrollContainers[category] += 100;
     }
+    function infiniteScroll(node, callback) {
+        const observer = new IntersectionObserver((entries) => {
+            const firstEntry = entries[0];
+            if (firstEntry.isIntersecting) {
+                callback();
+            }
+        }, {
+            rootMargin: '200px'
+        });
+        observer.observe(node);
+        return {
+            destroy() {
+                observer.unobserve(node);
+            }
+        };
+    }
+
     function openFullImage(img, category, index) {
         selectedImg = img;
         currentIdx = index;
@@ -171,6 +188,11 @@
                 <div class="pulse"></div>
                 <br><p>Loading resources... please wait!</p><br>
             </div>
+        {:else if loadingOld}
+            <div class="loader-screen">
+                <div class="pulse"></div>
+                <br><p>Loading old resources... please wait!</p><br>
+            </div>
         {:else}
             {#each Object.entries(imgData) as [category, images]}
                 <section class="category-section" id={category}>
@@ -178,6 +200,7 @@
                         <div class="line"></div>
                         <h2 on:click={() => handleHeaderClick(category)} class="clickable-header">
                             {category}
+                            <p class="title-arial">(click for detail)</p>
                         </h2>
                         {#if expandedCategories[category]}
                             <button class="btn-close" on:click={() => toggleExpand(category)}>✕ Close</button>
@@ -195,7 +218,7 @@
                                 {#each images.slice(0, 15) as img, i}
                                     <div class="img-card">
                                         <div class="img-inner" on:click={() => openFullImage(img, category, i)}>
-                                            <img src={img.url + "=w200"} alt={img.name} loading="lazy" decoding="async" />
+                                            <img src={img.url + "=w100"} alt={img.name} loading="lazy" decoding="async" />
                                             <div class="overlay">
                                                 <span>{img.name.split('.')[0]}</span>
                                             </div>
@@ -215,16 +238,16 @@
                         <div class="expanded-grid">
                             {#each images.slice(0, scrollContainers[category]) as img, i}
                                 <div class="img-card-large" on:click={() => openFullImage(img, category, i)}>
-                                    <img src={img.url + "=w800"} alt={img.name} loading="lazy"/>
+                                    <img src={img.url + "=w100"} alt={img.name} loading="lazy"/>
                                 </div>
                             {/each}
                         </div>
 
                         {#if scrollContainers[category] < images.length}
-                            <div class="load-more-trigger">
-                                <button class="btn-load-more" on:click={() => loadMore(category)}>
-                                    VIEW MORE IN {category}
-                                </button>
+                            <div class="load-more-trigger flex justify-center items-center py-8"
+                                    use:infiniteScroll={() => loadMore(category)}>
+                                <!-- Hiệu ứng loading xoay tròn thay cho nút bấm thô cứng -->
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
                             </div>
                         {/if}
                     {/if}
@@ -244,7 +267,7 @@
             <button class="close-lightbox">✕</button>
             <button class="lightbox-nav prev" on:click={prevImage}>‹</button>
             <div class="lightbox-content">
-                <img src={selectedImg.url + "=w1600"} alt={selectedImg.name} />
+                <img src={selectedImg.url + "=w1200"} alt={selectedImg.name} />
                 <div class="lightbox-info">
                     <span>{currentCate} | {currentIdx + 1} / {imgData[currentCate].length}</span>
                     <p>{selectedImg.name}</p>
@@ -308,6 +331,7 @@
     .category-section { padding: 60px 5%; overflow: hidden; padding-top: 100px; }
     .section-title { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
     .section-title h2 { color: var(--accent); letter-spacing: 4px; font-weight: bold; margin: 0; }
+    .title-arial {color: var(--text); font-size: 12px; font-style: italic; font-family: "JetBrains Mono Light"}
     .line { flex: 1; height: 1px; background: rgba(128, 128, 128, 0.2); }
     /* Slider Logic & Swipe */
     .slider-wrapper { position: relative; }
@@ -324,8 +348,8 @@
     .slider::-webkit-scrollbar { display: none; } /* Chrome/Safari */
     .expanded-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
         animation: fadeIn 0.5s ease;
     }
     .img-card-large img {
@@ -346,15 +370,6 @@
         text-align: center;
         padding: 40px;
     }
-    .btn-load-more {
-        background: #deff9a;
-        color: #000;
-        border: none;
-        padding: 12px 30px;
-        font-weight: bold;
-        cursor: pointer;
-        border-radius: 4px;
-    }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -373,7 +388,7 @@
     .next { right: -22px; }
     /* Image Cards & Hover Effect */
     .img-card {
-        flex: 0 0 350px;
+        flex: 0 0 150px;
         scroll-snap-align: start;
         border-radius: 12px;
         overflow: hidden;
@@ -417,7 +432,7 @@
         transition: var(--transition);
     }
     .clickable-header:hover {
-        letter-spacing: 6px; /* Hiệu ứng giãn chữ nhẹ khi hover */
+        letter-spacing: 3px; /* Hiệu ứng giãn chữ nhẹ khi hover */
         opacity: 0.8;
     }
     /* Lightbox Styles */
@@ -504,6 +519,6 @@
             font-size: 30px;
             margin-right: -45px;
         }
-        .img-card { flex: 0 0 200px; }
+        .img-card { flex: 0 0 100px; }
     }
 </style>
